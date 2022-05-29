@@ -14,7 +14,13 @@
         android:theme="@style/Theme.GreenFlagRegistrationPage"
         tools:targetApi="31">
         <activity
+            android:name=".MainActivity2"
+            android:label="@string/registration_page_title"
+
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
