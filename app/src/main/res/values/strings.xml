@@ -16,5 +16,5 @@
     <string name="password_criteria">Your password should have a minimum of 8 characters and contain at least one number, one uppercase and one lower case letter. You can use special characters.</string>
     <string name="create_account_done_btn">Next</string>
     <string name="registration_page_title">Create Account</string>
-    <string name="wipe_server_data">Wipe server data</string>
+    <string name="wipe_server_data">Wipe shared preference</string>
 </resources>

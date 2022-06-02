@@ -37,7 +37,7 @@
                 android:textColor="@color/white"
                 android:textSize="24sp" />
 
-            <EditText
+            <AutoCompleteTextView
                 android:id="@+id/email_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -48,7 +48,8 @@
                 android:padding="15dp"
                 android:textColorHint="#78909C"
                 android:textSize="24sp"
-                android:importantForAutofill="no" />
+                android:importantForAutofill="no"
+                android:completionThreshold="2"/>
 
             <Space
                 android:layout_width="match_parent"

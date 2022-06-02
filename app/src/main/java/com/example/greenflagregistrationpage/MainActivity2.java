@@ -12,10 +12,11 @@ import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.util.Patterns;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
@@ -27,7 +28,10 @@ import java.util.Set;
 
 public class MainActivity2 extends AppCompatActivity {
 
-    private EditText email_input;
+    private SharedPreferences pref;
+    private SharedPreferences.Editor editor;
+
+    private AutoCompleteTextView email_input;
     private EditText password_input;
     private EditText password_confirm_input;
     private Button register_btn;
@@ -39,11 +43,19 @@ public class MainActivity2 extends AppCompatActivity {
 
     private MockServer server;
 
+    public static String GetPacketData(String msg) {
+        String[] msg_split = msg.split(",",3);
+        return msg_split.length > 2 ? msg_split[2] : "";
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main2);
         server = new MockServer();
+
+        pref = MainActivity2.this.getPreferences(Context.MODE_PRIVATE);
+        editor = pref.edit();
 
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null)
@@ -99,6 +111,19 @@ public class MainActivity2 extends AppCompatActivity {
             }
         );
 
+        Set<String> email_history = new HashSet<>(
+                pref.getStringSet("email_history", new HashSet<>()));
+
+        if (email_history.size() > 0)
+        {
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                    this,
+                    android.R.layout.select_dialog_item,
+                    email_history.toArray(new String[0])
+            );
+            email_input.setAdapter(adapter);
+        }
+
         register_btn.getBackground().setColorFilter(
                 Color.GRAY, PorterDuff.Mode.MULTIPLY
         );
@@ -130,7 +155,9 @@ public class MainActivity2 extends AppCompatActivity {
             return false;
         }
 
-        if (server.VerifyEmail(email)) {
+        if (GetPacketData(
+                server.SendMessage("GET,verifyEmail," + email))
+                .equals("1")) {
             email_input.setError("Email already used.");
             return false;
         }
@@ -202,7 +229,16 @@ public class MainActivity2 extends AppCompatActivity {
     }
 
     public void RegisterInfo(View view) {
-        server.RegisterEmail(email_input.getText().toString());
+        String email = email_input.getText().toString();
+
+        Set<String> email_history = new HashSet<>(
+                pref.getStringSet("email_history", new HashSet<>()));
+        email_history.add(email);
+        editor.putStringSet("email_history",email_history).commit();
+
+        // While it's supposed to wait for response,
+        //      no need to go that far for now.
+        server.SendMessage("POST,registerEmail," + email);
         Intent i = new Intent();
         i.putExtra("registered", true);
         setResult(RESULT_OK, i);
@@ -227,12 +263,51 @@ public class MainActivity2 extends AppCompatActivity {
                 getPreferences(Context.MODE_PRIVATE);
         private final SharedPreferences.Editor editor = pref.edit();
 
-        public boolean VerifyEmail(String email) {
+        // Request Format: mode,event,data
+        // Response Format: code,event,data
+        public String SendMessage(String msg) {
+            String[] msg_split = msg.split(",",2);
+            String msg_mode = msg_split[0];
+            msg = msg_split[1];
+
+            msg_split = msg.split(",",2);
+            String msg_event = msg_split[0];
+            msg = msg_split[1];
+
+            String result = "";
+
+            if (msg_mode.equals("GET"))
+            {
+                switch (msg_event) {
+                    case "verifyEmail":
+                       result = VerifyEmail(msg) ? "1" : "0";
+                       break;
+                    case "Something else":
+                        break; // Just to stop the warning without suppressing.
+                    default:
+                        return "400,,";
+                }
+            } else if (msg_mode.equals("POST")) {
+                switch (msg_event) {
+                    case "registerEmail":
+                        RegisterEmail(msg);
+                        break;
+                    case "Something else":
+                        break; // Just to stop the warning without suppressing.
+                    default:
+                        return "400,,";
+                }
+            } else return "400,,";
+
+            return "200," + msg_event + "," + result;
+        }
+
+        private boolean VerifyEmail(String email) {
             Set<String> email_list = pref.getStringSet("email_list", new HashSet<>());
             return email_list.contains(email);
         }
 
-        public void RegisterEmail(String email) {
+        private void RegisterEmail(String email) {
             Set<String> email_list = new HashSet<>(
                     pref.getStringSet("email_list", new HashSet<>()));
             email_list.add(email);
